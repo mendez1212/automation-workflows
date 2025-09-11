@@ -1,0 +1,309 @@
+name: Image Processor Workflow
+
+on:
+  workflow_call:
+    inputs:
+      image_folder:
+        description: 'Path to the images folder for the calling repository'
+        required: false
+        type: string
+        default: 'docs/ui/'
+      readme_path:
+        description: 'Path to the README.md file'
+        required: false
+        type: string
+        default: 'README.md'
+      enable_gallery:
+        description: 'Enable or disable gallery generation'
+        required: false
+        type: boolean
+        default: true
+      max_width:
+        description: 'Maximum image width in pixels'
+        required: false
+        type: number
+        default: 300
+      target_radius:
+        description: 'Border radius percentage (e.g., 6.5 for 6.5%)'
+        required: false
+        type: number
+        default: 6.5
+      check_size:
+        description: 'Enable size checking'
+        required: false
+        type: boolean
+        default: true
+      check_radius:
+        description: 'Enable radius checking'
+        required: false
+        type: boolean
+        default: true
+      fast_check:
+        description: 'Enable fast check mode'
+        required: false
+        type: boolean
+        default: true
+      columns:
+        description: 'Number of columns for preview and gallery (1 or 2)'
+        required: false
+        type: number
+        default: 2
+    secrets:
+      IMAGE_PROCESS_PAT:
+        description: 'GitHub token with repository access'
+        required: true
+
+jobs:
+  process-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Calling Repository Code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.IMAGE_PROCESS_PAT }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Checkout Reusable Workflow Repository
+        uses: actions/checkout@v3
+        with:
+          repository: Falconsoft25/automative-scripts
+          path: .image-processor-source
+          token: ${{ secrets.IMAGE_PROCESS_PAT }}
+
+      - name: Setup Rust
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
+          rustup default stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ./.image-processor-source/.github/image-processor/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('.image-processor-source/.github/image-processor/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Create binary directory
+        shell: bash
+        run: |
+          mkdir -p .image-processor-source/.github/image-processor/bin
+          echo "Created binary directory"
+
+      - name: Download cached binary
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: image-processor-binary
+          path: .image-processor-source/.github/image-processor/bin
+
+      - name: Check if binary exists and is valid
+        id: check_binary
+        shell: bash
+        run: |
+          BINARY_PATH=".image-processor-source/.github/image-processor/bin/image-processor"
+          if [ -f "$BINARY_PATH" ] && [ -x "$BINARY_PATH" ]; then
+            echo "Binary exists and is executable"
+            echo "binary_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Binary does not exist or is not executable"
+            echo "binary_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build image processor
+        if: steps.check_binary.outputs.binary_exists != 'true'
+        shell: bash
+        run: |
+          echo "Building image processor..."
+          cd .image-processor-source/.github/image-processor
+          
+          # Source Rust environment
+          source "$HOME/.cargo/env"
+          
+          # Clean any previous builds
+          cargo clean
+          
+          # Build in release mode
+          cargo build --release --verbose
+          
+          # Verify the binary was created
+          if [ ! -f "target/release/image-processor" ]; then
+            echo "Error: Binary was not created in target/release/"
+            ls -la target/release/ || echo "target/release/ does not exist"
+            exit 1
+          fi
+          
+          # Copy binary to bin directory
+          cp target/release/image-processor bin/image-processor
+          
+          # Set executable permissions
+          chmod +x bin/image-processor
+          
+          # Verify the copy succeeded
+          if [ ! -f "bin/image-processor" ] || [ ! -x "bin/image-processor" ]; then
+            echo "Error: Failed to copy or set permissions on binary"
+            ls -la bin/
+            exit 1
+          fi
+          
+          echo "Binary built and copied successfully"
+
+      - name: Commit binary to automative-scripts repository
+        if: steps.check_binary.outputs.binary_exists != 'true'
+        shell: bash
+        run: |
+          cd .image-processor-source
+          
+          # Configure git for the automative-scripts repository
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Add and commit the binary
+          git add -f .github/image-processor/bin/image-processor
+          
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git commit -m "chore: update image processor binary [skip ci]"
+            git push https://${{ secrets.IMAGE_PROCESS_PAT }}@github.com/Falconsoft25/automative-scripts.git HEAD:main
+            echo "Binary committed to automative-scripts repository"
+          else
+            echo "No changes to commit"
+          fi
+
+      - name: Upload image-processor binary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-processor-binary
+          path: .image-processor-source/.github/image-processor/bin/image-processor
+
+      - name: Final binary verification
+        shell: bash
+        run: |
+          BINARY_PATH=".image-processor-source/.github/image-processor/bin/image-processor"
+          if [ ! -f "$BINARY_PATH" ]; then
+            echo "Error: Binary not found at $BINARY_PATH"
+            echo "Contents of bin directory:"
+            ls -la .image-processor-source/.github/image-processor/bin/ || echo "bin directory does not exist"
+            exit 1
+          fi
+          
+          if [ ! -x "$BINARY_PATH" ]; then
+            echo "Error: Binary is not executable"
+            ls -la "$BINARY_PATH"
+            chmod +x "$BINARY_PATH"
+            echo "Set executable permissions"
+          fi
+          
+          echo "Binary verified successfully"
+          echo "Binary info:"
+          ls -la "$BINARY_PATH"
+          file "$BINARY_PATH"
+
+      - name: Process images
+        working-directory: ${{ github.workspace }}
+        run: |
+          # Build the command with all flags
+          CMD="./.image-processor-source/.github/image-processor/bin/image-processor"
+          CMD="$CMD --image-folder '${{ inputs.image_folder }}'"
+          CMD="$CMD --enable-gallery '${{ inputs.enable_gallery }}'"
+          CMD="$CMD --max-width '${{ inputs.max_width }}'"
+          CMD="$CMD --readme-path '${{ inputs.readme_path }}'"
+          CMD="$CMD --target-radius '${{ inputs.target_radius }}'"
+          CMD="$CMD --check-size '${{ inputs.check_size }}'"
+          CMD="$CMD --check-radius '${{ inputs.check_radius }}'"
+          CMD="$CMD --fast-check '${{ inputs.fast_check }}'"
+          CMD="$CMD --columns '${{ inputs.columns }}'"
+          
+          # Execute the command
+          echo "Executing: $CMD"
+          eval $CMD
+
+      - name: Configure Git and handle changes
+        shell: bash
+        run: |
+          # Configure git
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Fetch and get branch name
+          git fetch origin
+          branch=${GITHUB_REF#refs/heads/}
+          
+          # Clean untracked files from previous runs
+          git clean -fd .image-processor-source/
+          
+          # Update local branch
+          git checkout -B $branch origin/$branch
+          
+          # Stage only specific files we want to commit (only files from the caller's repository)
+          git add -f "${{ inputs.image_folder }}" || true
+          git add -f "docs/ui-gallery.md" || true
+          git add -f "${{ inputs.readme_path }}" || true
+
+          # Remove any staged files that don't exist
+          git add -u
+
+      - name: Commit and push if changes exist
+        shell: bash
+        run: |
+          # Get current branch name
+          current_branch=$(git branch --show-current)
+          if [ -z "$current_branch" ]; then
+            current_branch=${GITHUB_REF#refs/heads/}
+          fi
+          
+          if [[ -n "$(git status --porcelain)" ]]; then
+            # Commit changes
+            git commit -m "chore: optimize images, update gallery and README preview [skip ci]"
+            
+            # Try to push with retries
+            max_attempts=3
+            attempt=1
+            while [ $attempt -le $max_attempts ]; do
+              echo "Push attempt $attempt of $max_attempts"
+              
+              # Try a direct push first
+              if git push origin "HEAD:${current_branch}"; then
+                echo "Push successful"
+                exit 0
+              fi
+              
+              echo "Push failed, trying to synchronize with remote"
+              git fetch origin
+              
+              # Try to rebase onto remote changes
+              if git rebase "origin/${current_branch}"; then
+                echo "Rebase successful, pushing changes"
+                if git push origin "HEAD:${current_branch}"; then
+                  echo "Push after rebase successful"
+                  exit 0
+                fi
+              else
+                echo "Rebase failed, cleaning up"
+                git rebase --abort
+                
+                # On last attempt, try force push as fallback
+                if [ $attempt -eq $max_attempts ]; then
+                  echo "Final attempt: trying force push"
+                  if git push --force-with-lease origin "HEAD:${current_branch}"; then
+                    echo "Force push successful"
+                    exit 0
+                  fi
+                fi
+              fi
+              
+              # Increment attempt counter
+              ((attempt++))
+            done
+            
+            echo "All push attempts failed"
+            exit 1
+          else
+            echo "No changes to commit"
+          fi

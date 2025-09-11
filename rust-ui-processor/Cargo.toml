@@ -1,0 +1,26 @@
+[package]
+name = "image-processor"
+version = "0.1.0"
+edition = "2024"
+description = "Bulletproof, reusable, and efficient image-processing system for GitHub Actions"
+authors = ["falconsoft25"]
+
+[profile.release]
+opt-level = 3            # Maximum optimization level
+lto = true              # Enable Link Time Optimization
+codegen-units = 1       # Maximize performance by using single codegen unit
+panic = 'abort'         # Remove panic unwinding code
+strip = true            # Strip symbols from binary
+
+[dependencies]
+image = "0.24.7"
+rayon = "1.8.0"
+regex = "1.10.2"
+clap = { version = "4.4.7", features = ["derive"] }
+anyhow = "1.0.75"
+serde = { version = "1.0.189", features = ["derive"] }
+serde_json = "1.0.107"
+log = "0.4.20"
+env_logger = "0.10.0"
+glob = "0.3.1"
+chrono = "0.4.31"
