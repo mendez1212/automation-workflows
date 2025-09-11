@@ -1,0 +1,32 @@
+{
+  "name": "github-vercel",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required\""
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Falcon12120/github-vercel.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Falcon12120/github-vercel/issues"
+  },
+  "homepage": "https://github.com/Falcon12120/github-vercel#readme",
+  "description": "",
+  "dependencies": {
+    "@octokit/auth-app": "^8.0.1",
+    "@octokit/rest": "^22.0.0",
+    "@octokit/webhooks": "^14.0.0",
+    "raw-body": "^3.0.0",
+    "sharp": "^0.34.2"
+  }
+}
